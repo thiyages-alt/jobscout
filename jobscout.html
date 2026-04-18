@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobScout – Smart Job Search</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f5f5f0;
+    color: #1a1a1a;
+    min-height: 100vh;
+  }
+
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+
+  /* Header */
+  .header {
+    background: #ffffff;
+    border-bottom: 0.5px solid rgba(0,0,0,0.1);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: #1a1a1a;
+  }
+  .logo span { color: #1D9E75; }
+
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .resume-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    padding: 6px 14px;
+    background: #E1F5EE;
+    color: #0F6E56;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .resume-badge.empty {
+    background: #f1f1ee;
+    color: #888;
+    cursor: pointer;
+    border: 1px dashed #ccc;
+    transition: all 0.2s;
+  }
+  .resume-badge.empty:hover { border-color: #1D9E75; color: #1D9E75; background: #E1F5EE; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: #1D9E75; flex-shrink: 0; }
+
+  /* Main layout */
+  .main { display: flex; flex: 1; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: #ffffff;
+    border-right: 0.5px solid rgba(0,0,0,0.08);
+    padding: 1.5rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: calc(100vh - 56px);
+    position: sticky;
+    top: 56px;
+    overflow-y: auto;
+  }
+
+  .filter-section { display: flex; flex-direction: column; gap: 8px; }
+  .filter-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #999;
+    text-transform: uppercase;
+    padding: 0 4px;
+  }
+
+  .search-box {
+    display: flex; align-items: center;
+    background: #f5f5f0;
+    border: 0.5px solid rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 0 10px;
+    gap: 6px;
+  }
+  .search-box input {
+    border: none; background: transparent;
+    font-size: 13px; padding: 8px 0;
+    color: #1a1a1a;
+    font-family: inherit;
+    width: 100%;
+    outline: none;
+  }
+  .search-icon { color: #aaa; font-size: 15px; }
+
+  .portal-list { display: flex; flex-direction: column; gap: 4px; }
+  .portal-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .portal-item:hover { background: #f5f5f0; }
+  .portal-item.active { background: #E1F5EE; }
+  .portal-left { display: flex; align-items: center; gap: 8px; }
+  .portal-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .portal-name { font-size: 13px; font-weight: 500; }
+  .portal-count {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 7px; border-radius: 10px;
+    background: #f0f0ec;
+    color: #888;
+  }
+  .portal-item.active .portal-count { background: #9FE1CB; color: #085041; }
+
+  .tag-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    font-size: 12px; font-weight: 500;
+    padding: 4px 10px; border-radius: 20px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    cursor: pointer;
+    color: #666;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .tag:hover { border-color: #1D9E75; color: #1D9E75; }
+  .tag.active { background: #1D9E75; color: white; border-color: #1D9E75; }
+
+  .salary-range { display: flex; flex-direction: column; gap: 8px; }
+  .salary-labels { display: flex; justify-content: space-between; font-size: 12px; color: #999; }
+  input[type=range] { width: 100%; accent-color: #1D9E75; cursor: pointer; }
+
+  /* Content */
+  .content { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+  /* Stats row */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat-card {
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 1rem;
+  }
+  .stat-label { font-size: 11px; color: #999; margin-bottom: 4px; font-weight: 500; }
+  .stat-value { font-size: 24px; font-weight: 600; }
+  .stat-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+  .stat-green { color: #1D9E75; }
+  .stat-blue { color: #185FA5; }
+  .stat-amber { color: #BA7517; }
+
+  /* Upload area */
+  .upload-area {
+    background: #ffffff;
+    border: 2px dashed #ddd;
+    border-radius: 14px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: none;
+  }
+  .upload-area:hover { border-color: #1D9E75; background: #f0fdf8; }
+  .upload-area.visible { display: block; }
+  .upload-icon { font-size: 40px; margin-bottom: 10px; }
+  .upload-title { font-size: 17px; font-weight: 500; margin-bottom: 6px; }
+  .upload-sub { font-size: 14px; color: #888; line-height: 1.5; }
+  .upload-btn {
+    margin-top: 1.25rem;
+    padding: 10px 24px;
+    background: #1D9E75;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .upload-btn:hover { background: #0F6E56; }
+
+  /* Skills extracted */
+  .skills-row {
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 10px;
+    padding: 0.9rem 1.25rem;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .skills-row.visible { display: flex; }
+  .skills-label { font-size: 12px; font-weight: 600; color: #999; white-space: nowrap; }
+  .skill-chip { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 20px; }
+  .skill-green { background: #E1F5EE; color: #0F6E56; }
+  .skill-blue { background: #E6F1FB; color: #185FA5; }
+  .skill-amber { background: #FAEEDA; color: #854F0B; }
+
+  /* Sort bar */
+  .sort-bar { display: flex; align-items: center; justify-content: space-between; }
+  .result-count { font-size: 14px; color: #888; }
+  .result-count strong { color: #1a1a1a; }
+  .sort-group { display: flex; align-items: center; gap: 6px; }
+  .sort-btn {
+    font-size: 12px; font-weight: 500; font-family: inherit;
+    padding: 5px 12px; border-radius: 6px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    background: #ffffff;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .sort-btn.active { background: #1D9E75; color: white; border-color: #1D9E75; }
+  .sort-btn:hover:not(.active) { border-color: #1D9E75; color: #1D9E75; }
+
+  /* Job cards */
+  .job-list { display: flex; flex-direction: column; gap: 10px; }
+  .job-card {
+    background: #ffffff;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    border-radius: 12px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: flex-start; gap: 1rem;
+  }
+  .job-card:hover { border-color: rgba(0,0,0,0.2); box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
+  .job-card.featured { border-left: 3px solid #1D9E75; }
+
+  .company-logo {
+    width: 46px; height: 46px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 700;
+    flex-shrink: 0;
+    border: 0.5px solid rgba(0,0,0,0.07);
+  }
+
+  .job-info { flex: 1; min-width: 0; }
+  .job-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .job-title { font-size: 15px; font-weight: 500; }
+  .match-badge {
+    font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 12px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .match-high { background: #E1F5EE; color: #085041; }
+  .match-med { background: #FAEEDA; color: #633806; }
+  .match-low { background: #f0f0ec; color: #888; }
+
+  .job-company { font-size: 13px; color: #888; margin-bottom: 7px; }
+  .job-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+  .meta-item { font-size: 12px; color: #aaa; display: flex; align-items: center; gap: 3px; }
+  .portal-tag {
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px;
+  }
+
+  .job-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 0.5px solid rgba(0,0,0,0.07); flex-wrap: wrap; gap: 8px; }
+  .job-skills { display: flex; gap: 5px; flex-wrap: wrap; }
+  .job-skill { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #f5f5f0; color: #666; }
+  .apply-btn {
+    font-size: 12px; font-weight: 500; font-family: inherit;
+    padding: 6px 14px; border-radius: 6px;
+    border: 0.5px solid rgba(0,0,0,0.15);
+    background: transparent;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .apply-btn:hover { background: #1D9E75; color: white; border-color: #1D9E75; }
+
+  input[type="file"] { display: none; }
+
+  /* Notification */
+  .toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    background: #1a1a1a; color: white;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; transition: opacity 0.3s;
+    z-index: 999; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="header">
+    <div class="logo">Job<span>Scout</span></div>
+    <div class="header-actions">
+      <div class="resume-badge empty" id="resumeBadge" onclick="document.getElementById('fileInput').click()">
+        ＋ Upload Resume
+      </div>
+      <input type="file" id="fileInput" accept=".pdf,.doc,.docx" onchange="handleUpload(this)">
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="filter-section">
+        <div class="filter-label">Search</div>
+        <div class="search-box">
+          <span class="search-icon">⌕</span>
+          <input type="text" placeholder="Job title or keyword..." oninput="renderJobs()" id="searchInput">
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Portals</div>
+        <div class="portal-list" id="portalList">
+          <div class="portal-item active" onclick="setPortal('all', this)">
+            <div class="portal-left">
+              <div class="portal-icon" style="background:#E1F5EE; color:#085041;">🌐</div>
+              <span class="portal-name">All Portals</span>
+            </div>
+            <span class="portal-count" id="count-all">10</span>
+          </div>
+          <div class="portal-item" onclick="setPortal('LinkedIn', this)">
+            <div class="portal-left">
+              <div class="portal-icon" style="background:#E6F1FB; color:#0C447C; font-size:11px;">in</div>
+              <span class="portal-name">LinkedIn</span>
+            </div>
+            <span class="portal-count" id="count-LinkedIn">3</span>
+          </div>
+          <div class="portal-item" onclick="setPortal('JobStreet', this)">
+            <div class="portal-left">
+              <div class="portal-icon" style="background:#FAEEDA; color:#633806; font-size:10px;">JS</div>
+              <span class="portal-name">JobStreet</span>
+            </div>
+            <span class="portal-count" id="count-JobStreet">3</span>
+          </div>
+          <div class="portal-item" onclick="setPortal('Indeed', this)">
+            <div class="portal-left">
+              <div class="portal-icon" style="background:#FCEBEB; color:#791F1F; font-size:11px;">In</div>
+              <span class="portal-name">Indeed</span>
+            </div>
+            <span class="portal-count" id="count-Indeed">2</span>
+          </div>
+          <div class="portal-item" onclick="setPortal('Glassdoor', this)">
+            <div class="portal-left">
+              <div class="portal-icon" style="background:#E1F5EE; color:#085041; font-size:10px;">Gd</div>
+              <span class="portal-name">Glassdoor</span>
+            </div>
+            <span class="portal-count" id="count-Glassdoor">2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Job Type</div>
+        <div class="tag-group">
+          <span class="tag active" onclick="toggleTag(this)">Full-time</span>
+          <span class="tag" onclick="toggleTag(this)">Part-time</span>
+          <span class="tag" onclick="toggleTag(this)">Remote</span>
+          <span class="tag" onclick="toggleTag(this)">Hybrid</span>
+          <span class="tag" onclick="toggleTag(this)">Contract</span>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Experience Level</div>
+        <div class="tag-group">
+          <span class="tag" onclick="toggleTag(this)">Entry</span>
+          <span class="tag active" onclick="toggleTag(this)">Mid</span>
+          <span class="tag active" onclick="toggleTag(this)">Senior</span>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Min. Salary (MYR/mo)</div>
+        <div class="salary-range">
+          <input type="range" min="2000" max="30000" value="8000" step="500" oninput="updateSalary(this.value)" id="salarySlider">
+          <div class="salary-labels">
+            <span>RM 2k</span>
+            <span id="salaryVal" style="color:#1a1a1a; font-weight:500;">≥ RM 8,000</span>
+            <span>RM 30k</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Content -->
+    <main class="content">
+
+      <!-- Upload area -->
+      <div class="upload-area visible" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-title">Upload your resume to get started</div>
+        <div class="upload-sub">We'll extract your skills and match you with the best jobs<br>across LinkedIn, JobStreet, Indeed, Glassdoor and more</div>
+        <button class="upload-btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+          Choose Resume (PDF, DOC, DOCX)
+        </button>
+      </div>
+
+      <!-- Skills extracted -->
+      <div class="skills-row" id="skillsRow">
+        <span class="skills-label">Extracted skills:</span>
+        <span class="skill-chip skill-green">React</span>
+        <span class="skill-chip skill-green">Node.js</span>
+        <span class="skill-chip skill-green">TypeScript</span>
+        <span class="skill-chip skill-blue">AWS</span>
+        <span class="skill-chip skill-blue">Docker</span>
+        <span class="skill-chip skill-amber">5 yrs experience</span>
+        <span class="skill-chip skill-amber">Software Engineer</span>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Jobs Found</div>
+          <div class="stat-value stat-green" id="statTotal">10</div>
+          <div class="stat-sub">Across 4 portals</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">High Match (≥80%)</div>
+          <div class="stat-value stat-blue" id="statHigh">4</div>
+          <div class="stat-sub">Strong fit for you</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">New Today</div>
+          <div class="stat-value stat-amber">3</div>
+          <div class="stat-sub">Posted in last 24h</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg. Salary</div>
+          <div class="stat-value" style="font-size:18px;">RM 12.4k</div>
+          <div class="stat-sub">Matching your level</div>
+        </div>
+      </div>
+
+      <!-- Sort bar -->
+      <div class="sort-bar">
+        <span class="result-count"><strong id="visibleCount">10</strong> jobs found</span>
+        <div class="sort-group">
+          <button class="sort-btn active" onclick="setSort('match', this)">Best Match</button>
+          <button class="sort-btn" onclick="setSort('recent', this)">Newest</button>
+          <button class="sort-btn" onclick="setSort('salary', this)">Salary</button>
+        </div>
+      </div>
+
+      <!-- Job list -->
+      <div class="job-list" id="jobList"></div>
+
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const JOBS = [
+  { id:1, title:"Senior Frontend Engineer", company:"Grab", logo:"🚗", logoBg:"#FAEEDA", location:"Kuala Lumpur", type:"Hybrid", salary:"RM 12,000–18,000", salaryMin:12000, portal:"LinkedIn", match:95, days:1, skills:["React","TypeScript","GraphQL"], featured:true, url:"https://www.linkedin.com/jobs/" },
+  { id:2, title:"Full Stack Developer", company:"Shopee", logo:"🛍", logoBg:"#FCEBEB", location:"Petaling Jaya", type:"On-site", salary:"RM 10,000–15,000", salaryMin:10000, portal:"JobStreet", match:91, days:0, skills:["React","Node.js","AWS"], featured:true, url:"https://www.jobstreet.com.my/" },
+  { id:3, title:"Software Engineer – Backend", company:"Axiata", logo:"📡", logoBg:"#E6F1FB", location:"KL Sentral", type:"Hybrid", salary:"RM 8,000–13,000", salaryMin:8000, portal:"Indeed", match:87, days:2, skills:["Node.js","Docker","Postgres"], featured:false, url:"https://my.indeed.com/" },
+  { id:4, title:"Lead React Developer", company:"Maybank", logo:"🏦", logoBg:"#E1F5EE", location:"Kuala Lumpur", type:"Full-time", salary:"RM 14,000–20,000", salaryMin:14000, portal:"LinkedIn", match:84, days:3, skills:["React","TypeScript","Redux"], featured:false, url:"https://www.linkedin.com/jobs/" },
+  { id:5, title:"Cloud Solutions Engineer", company:"TM One", logo:"☁️", logoBg:"#E6F1FB", location:"Remote", type:"Remote", salary:"RM 9,000–14,000", salaryMin:9000, portal:"Glassdoor", match:79, days:1, skills:["AWS","Docker","Terraform"], featured:false, url:"https://www.glassdoor.com/Job/" },
+  { id:6, title:"DevOps / Platform Engineer", company:"Carsome", logo:"🚙", logoBg:"#FAEEDA", location:"KL", type:"Hybrid", salary:"RM 11,000–16,000", salaryMin:11000, portal:"JobStreet", match:74, days:4, skills:["Docker","Kubernetes","CI/CD"], featured:false, url:"https://www.jobstreet.com.my/" },
+  { id:7, title:"React Native Developer", company:"Touch'n Go", logo:"💳", logoBg:"#E1F5EE", location:"Petaling Jaya", type:"On-site", salary:"RM 8,000–12,000", salaryMin:8000, portal:"Indeed", match:72, days:0, skills:["React Native","TypeScript"], featured:false, url:"https://my.indeed.com/" },
+  { id:8, title:"Frontend Developer (Mid)", company:"AirAsia MOVE", logo:"✈️", logoBg:"#FCEBEB", location:"Kuala Lumpur", type:"Hybrid", salary:"RM 7,000–10,000", salaryMin:7000, portal:"JobStreet", match:68, days:5, skills:["Vue.js","JavaScript","CSS"], featured:false, url:"https://www.jobstreet.com.my/" },
+  { id:9, title:"Software Architect", company:"Petronas Digital", logo:"⚙️", logoBg:"#E1F5EE", location:"KLCC", type:"On-site", salary:"RM 18,000–28,000", salaryMin:18000, portal:"LinkedIn", match:65, days:6, skills:["Node.js","AWS","Microservices"], featured:false, url:"https://www.linkedin.com/jobs/" },
+  { id:10, title:"Backend Engineer – Fintech", company:"BigPay", logo:"💰", logoBg:"#E1F5EE", location:"KL", type:"Hybrid", salary:"RM 10,000–16,000", salaryMin:10000, portal:"Glassdoor", match:62, days:2, skills:["Node.js","PostgreSQL","Redis"], featured:false, url:"https://www.glassdoor.com/Job/" },
+];
+
+const PORTAL_COLORS = {
+  LinkedIn:  { bg:"#E6F1FB", text:"#185FA5" },
+  JobStreet: { bg:"#FAEEDA", text:"#854F0B" },
+  Indeed:    { bg:"#FCEBEB", text:"#A32D2D" },
+  Glassdoor: { bg:"#E1F5EE", text:"#0F6E56" },
+};
+
+let activePortal = 'all';
+let activeSort = 'match';
+let resumeUploaded = false;
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function renderJobs() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const salaryMin = parseInt(document.getElementById('salarySlider').value);
+  let list = JOBS.filter(j => {
+    if (activePortal !== 'all' && j.portal !== activePortal) return false;
+    if (j.salaryMin < salaryMin) return false;
+    if (search && !j.title.toLowerCase().includes(search) && !j.company.toLowerCase().includes(search) && !j.skills.some(s => s.toLowerCase().includes(search))) return false;
+    return true;
+  });
+  if (activeSort === 'match') list.sort((a,b) => b.match - a.match);
+  else if (activeSort === 'recent') list.sort((a,b) => a.days - b.days);
+  else list.sort((a,b) => b.salaryMin - a.salaryMin);
+
+  document.getElementById('jobList').innerHTML = list.map(j => {
+    const pc = PORTAL_COLORS[j.portal] || { bg:'#f0f0ec', text:'#666' };
+    const mc = j.match >= 80 ? 'match-high' : j.match >= 65 ? 'match-med' : 'match-low';
+    return `
+    <div class="job-card${j.featured?' featured':''}">
+      <div class="company-logo" style="background:${j.logoBg}">${j.logo}</div>
+      <div class="job-info">
+        <div class="job-top">
+          <span class="job-title">${j.title}</span>
+          ${resumeUploaded ? `<span class="match-badge ${mc}">${j.match}% match</span>` : ''}
+        </div>
+        <div class="job-company">${j.company} &middot; ${j.location}</div>
+        <div class="job-meta">
+          <span class="meta-item">💼 ${j.type}</span>
+          <span class="meta-item">💵 ${j.salary}</span>
+          <span class="meta-item">${j.days === 0 ? '🆕 Today' : `🕐 ${j.days}d ago`}</span>
+          <span class="portal-tag" style="background:${pc.bg};color:${pc.text}">${j.portal}</span>
+        </div>
+        <div class="job-footer">
+          <div class="job-skills">${j.skills.map(s=>`<span class="job-skill">${s}</span>`).join('')}</div>
+          <a class="apply-btn" href="${j.url}" target="_blank" rel="noopener">Apply ↗</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('visibleCount').textContent = list.length;
+  document.getElementById('statTotal').textContent = list.length;
+  document.getElementById('statHigh').textContent = list.filter(j => j.match >= 80).length;
+}
+
+function setPortal(portal, el) {
+  activePortal = portal;
+  document.querySelectorAll('.portal-item').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderJobs();
+}
+
+function setSort(sort, el) {
+  activeSort = sort;
+  document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderJobs();
+}
+
+function toggleTag(el) { el.classList.toggle('active'); }
+
+function updateSalary(v) {
+  document.getElementById('salaryVal').textContent = `≥ RM ${parseInt(v).toLocaleString()}`;
+  renderJobs();
+}
+
+function handleUpload(input) {
+  if (!input.files.length) return;
+  const name = input.files[0].name;
+  resumeUploaded = true;
+  document.getElementById('uploadArea').classList.remove('visible');
+  document.getElementById('skillsRow').classList.add('visible');
+  const badge = document.getElementById('resumeBadge');
+  badge.classList.remove('empty');
+  badge.innerHTML = `<div class="dot"></div> ${name.length > 22 ? name.slice(0,20)+'…' : name}`;
+  showToast('Resume uploaded! Showing match scores.');
+  renderJobs();
+}
+
+renderJobs();
+</script>
+</body>
+</html>
