@@ -38,13 +38,9 @@ nav {
   color: var(--ink3); cursor: pointer; transition: all .18s; white-space: nowrap;
 }
 .nav-tab.active { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.08); }
-.key-btn {
-  font-size: 12px; font-weight: 500; font-family: inherit;
-  padding: 5px 12px; border-radius: 20px; cursor: pointer; transition: all .2s;
-  border: 1px dashed var(--ink4); color: var(--ink3); background: transparent; white-space: nowrap;
-}
-.key-btn.set { border-color: transparent; background: var(--accent-l); color: var(--accent); border-style: solid; }
-.key-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+
+
 
 /* PAGES */
 .page { display: none; }
@@ -307,19 +303,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .apply-lnk { font-size: 12px; font-weight: 500; font-family: inherit; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--ink); cursor: pointer; text-decoration: none; display: inline-block; transition: all .15s; white-space: nowrap; }
 .apply-lnk:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
-/* MODAL */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; display: none; align-items: center; justify-content: center; padding: 1rem; }
-.modal-bg.show { display: flex; }
-.modal { background: #fff; border-radius: var(--r-lg); padding: 2rem; width: 420px; max-width: 100%; }
-.modal h2 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-.modal p { font-size: 13px; color: var(--ink3); line-height: 1.6; margin-bottom: 14px; }
-.modal input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 13px; outline: none; margin-bottom: 6px; transition: border .2s; }
-.modal input:focus { border-color: var(--accent); }
-.modal-note { font-size: 11px; color: var(--ink4); margin-bottom: 14px; line-height: 1.5; }
-.modal-row { display: flex; gap: 8px; }
-.modal-save { padding: 9px 18px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer; flex: 1; }
-.modal-skip { padding: 9px 16px; background: transparent; color: var(--ink3); border: 1px solid var(--border); border-radius: 8px; font-size: 13px; font-family: inherit; cursor: pointer; }
-.modal-skip:hover { border-color: var(--ink2); color: var(--ink); }
+
 
 /* TOAST */
 .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; opacity: 0; transition: opacity .3s; z-index: 999; pointer-events: none; white-space: nowrap; }
@@ -340,20 +324,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 </head>
 <body>
 
-<!-- MODAL -->
-<div class="modal-bg" id="modalBg">
-  <div class="modal">
-    <h2>Enter your Anthropic API key</h2>
-    <p>ResumeIQ uses Claude AI for all features. Your key is saved in your browser only — never sent to any server other than Anthropic.</p>
-    <input type="password" id="apiInput" placeholder="sk-ant-api03-…">
-    <div class="modal-note">Get your free key at <strong>console.anthropic.com</strong> → API Keys. New accounts get free credits to start.</div>
-    <div class="modal-row">
-      <button class="modal-save" onclick="saveKey()">Save &amp; Continue</button>
-      <button class="modal-skip" onclick="skipKey()">Try Demo</button>
-    </div>
-  </div>
-</div>
-
 <nav>
   <div class="nav-logo">Resume<span>IQ</span></div>
   <div class="nav-tabs">
@@ -362,7 +332,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
     <button class="nav-tab" onclick="showPage('coverletter',this)">📝 Cover Letter</button>
     <button class="nav-tab" onclick="showPage('jobs',this)">🔍 Jobs</button>
   </div>
-  <button class="key-btn" id="keyBtn" onclick="openModal()">🔑 API Key</button>
+  
 </nav>
 
 <input type="file" id="fileInput" accept=".pdf,.doc,.docx" onchange="handleFile(this)">
@@ -659,7 +629,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 /* ── STATE ── */
-let apiKey = localStorage.getItem('riq_key') || '';
+
 let resumeText = '', jdText = '', atsResult = null;
 let jobPortal = 'all', jobSort = 'ats', jobAtsScores = {};
 let pendingFile = null, pendingAction = 'ats';
@@ -737,69 +707,8 @@ function animateNum(id, from, to, dur) {
 }
 
 /* ── API KEY ── */
-function openModal() { document.getElementById('modalBg').classList.add('show'); }
-function saveKey() {
-  const k = document.getElementById('apiInput').value.trim();
-  if (!k.startsWith('sk-ant')) { alert('Please enter a valid Anthropic API key (starts with sk-ant)'); return; }
-  apiKey = k; localStorage.setItem('riq_key', k);
-  document.getElementById('keyBtn').classList.add('set');
-  document.getElementById('keyBtn').textContent = '✓ Key Set';
-  document.getElementById('modalBg').classList.remove('show');
-  toast('API key saved!');
-  if (pendingFile) { const f = pendingFile; pendingFile = null; processPDF(f); }
-}
-function skipKey() {
-  document.getElementById('modalBg').classList.remove('show');
-  if (pendingFile) { pendingFile = null; runDemo('sample_resume.pdf'); }
-  else runDemo('sample_resume.pdf');
-}
-window.addEventListener('load', () => {
-  if (apiKey) { document.getElementById('keyBtn').classList.add('set'); document.getElementById('keyBtn').textContent = '✓ Key Set'; }
-  renderJobs();
-});
 
-/* ── FILE / UPLOAD ── */
-function startUpload() {
-  resetToUpload();
-  if (!apiKey) { pendingFile = 'waiting'; pendingAction = 'ats'; openModal(); return; }
-  document.getElementById('fileInput').click();
-}
-function resetToUpload() {
-  document.getElementById('heroSection').classList.remove('hidden');
-  document.getElementById('jdSection').classList.remove('hidden');
-  document.getElementById('resultsWrap').style.display = 'none';
-  document.getElementById('analyzingWrap').style.display = 'none';
-}
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('uploadZone').classList.remove('drag');
-  if (e.dataTransfer.files[0]) processFileStart(e.dataTransfer.files[0]);
-}
-function handleFile(inp) { if(inp.files.length) processFileStart(inp.files[0]); }
-async function processFileStart(file) {
-  if (!apiKey) { pendingFile = file; openModal(); return; }
-  await processPDF(file);
-}
-async function processPDF(file) {
-  document.getElementById('heroSection').classList.add('hidden');
-  document.getElementById('jdSection').classList.add('hidden');
-  document.getElementById('analyzingWrap').style.display = 'block';
-  setStep(1);
-  try {
-    let text = '';
-    if (file.name.toLowerCase().endsWith('.pdf')) {
-      const buf = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({data:buf}).promise;
-      for (let i=1; i<=pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const c = await page.getTextContent();
-        text += c.items.map(s=>s.str).join(' ') + '\n';
-      }
-    } else { text = await file.text(); }
-    resumeText = text; setStep(2);
-    jdText = document.getElementById('jdToggle').checked ? document.getElementById('jdBox').value.trim() : '';
-    await analyseWithClaude();
-  } catch(e) {
+ catch(e) {
     console.error(e); resetToUpload();
     toast('Could not read file — try a text-based PDF.');
   }
@@ -833,9 +742,9 @@ Return this exact JSON (all fields required):
 Be brutally honest. Score strictly — most resumes score 45-72. At least 5 improvements required.`;
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
+    const res = await fetch('/api/claude',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,messages:[{role:'user',content:prompt}]})
     });
     setStep(4);
@@ -917,10 +826,10 @@ function renderResults(r, isDemo) {
    BULLET REWRITER
 ══════════════════════════════════ */
 async function callClaude(prompt, maxTokens=600) {
-  if (!apiKey) { openModal(); throw new Error('No API key'); }
-  const res = await fetch('https://api.anthropic.com/v1/messages',{
+  
+  const res = await fetch('/api/claude',{
     method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
   });
   const data = await res.json();
