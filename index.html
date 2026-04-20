@@ -706,9 +706,27 @@ function animateNum(id, from, to, dur) {
   requestAnimationFrame(frame);
 }
 
-/* ── API KEY ── */
-
- catch(e) {
+/* ── FILE HANDLING ── */
+async function processPDF(file) {
+  document.getElementById('heroSection').classList.add('hidden');
+  document.getElementById('jdSection').classList.add('hidden');
+  document.getElementById('analyzingWrap').style.display = 'block';
+  setStep(1);
+  try {
+    let text = '';
+    if (file.name.toLowerCase().endsWith('.pdf')) {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+      for (let i=1; i<=pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const c = await page.getTextContent();
+        text += c.items.map(s=>s.str).join(' ') + '\n';
+      }
+    } else { text = await file.text(); }
+    resumeText = text; setStep(2);
+    jdText = document.getElementById('jdToggle').checked ? document.getElementById('jdBox').value.trim() : '';
+    await analyseWithClaude();
+  } catch(e) {
     console.error(e); resetToUpload();
     toast('Could not read file — try a text-based PDF.');
   }
@@ -1008,6 +1026,26 @@ function renderJobs() {
       </div>
     </div>`;
   }).join('');
+}
+
+function startUpload() {
+  resetToUpload();
+  document.getElementById('fileInput').click();
+}
+function resetToUpload() {
+  document.getElementById('heroSection').classList.remove('hidden');
+  document.getElementById('jdSection').classList.remove('hidden');
+  document.getElementById('resultsWrap').style.display = 'none';
+  document.getElementById('analyzingWrap').style.display = 'none';
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  if (e.dataTransfer.files[0]) processFileStart(e.dataTransfer.files[0]);
+}
+function handleFile(inp) { if(inp.files.length) processFileStart(inp.files[0]); }
+async function processFileStart(file) {
+  await processPDF(file);
 }
 </script>
 </body>
