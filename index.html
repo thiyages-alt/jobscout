@@ -763,12 +763,12 @@ Be brutally honest. Score strictly — most resumes score 45-72. At least 5 impr
     const res = await fetch('/api/claude',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2500,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({prompt:prompt, max_tokens:2500})
     });
     setStep(4);
     const data = await res.json();
-    if(data.error) throw new Error(data.error.message);
-    const raw = data.content[0].text.replace(/```json|```/g,'').trim();
+    if(data.error) throw new Error(data.error);
+    const raw = data.text.replace(/```json|```/g,'').trim();
     setStep(5);
     await new Promise(r=>setTimeout(r,400));
     renderResults(JSON.parse(raw), false);
@@ -844,15 +844,14 @@ function renderResults(r, isDemo) {
    BULLET REWRITER
 ══════════════════════════════════ */
 async function callClaude(prompt, maxTokens=600) {
-  
   const res = await fetch('/api/claude',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    body:JSON.stringify({prompt:prompt, max_tokens:maxTokens})
   });
   const data = await res.json();
-  if(data.error) throw new Error(data.error.message);
-  return data.content[0].text.trim();
+  if(data.error) throw new Error(data.error);
+  return data.text.trim();
 }
 
 async function rewriteSingle() {
